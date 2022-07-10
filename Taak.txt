@@ -1,0 +1,39 @@
+npx react-native init Taak --version 0.66.4
+
+npm install @react-navigation/native
+npm install react-native-screens react-native-safe-area-context
+npm install @react-navigation/native-stack
+npm install react-native-app-intro-slider
+npm install @react-navigation/bottom-tabs
+npm install react-native-reanimated react-native-gesture-handler react-native-screens react-native-safe-area-context @react-native-community/masked-view
+npm install react-native-animatable --save
+npm install axios
+npm install @react-native-async-storage/async-storage
+npm i @react-native-community/netinfo
+npm install react-native-vector-icons
+npm install react-native-paper
+npm install react-native-linear-gradient --save
+npm i react-native-image-crop-picker --save
+npm i react-native-swiper --save
+npm install react-native-element-dropdown --save
+npm i qs
+npm install react-native-geolocation-service
+npm install react-native-maps
+--------------------------------
+
+
+
+npm i react-native-snap-carousel
+npm i react-native-dropdown-picker
+npm i react-native-star-rating
+npm i lottie-react-native
+npm install @react-native-community/slider --save
+npm i react-native-numeric-input
+npm i react-native-maps
+npm install react-native-maps --save-exact
+npm install react-native-geocoding
+npm install react-native-geolocation-service
+npm i react-native-maps-directions
+npm i react-native-qrcode-scanner@1.5.3
+npm install react-native-camera
+npm install react-native-permissions
