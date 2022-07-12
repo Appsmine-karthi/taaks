@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { StyleSheet, Text, View, StatusBar, Dimensions, Image, TouchableOpacity, TextInput, ScrollView, Modal, PermissionsAndroid } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, Dimensions, Image, TouchableOpacity, TextInput, ScrollView, Modal, PermissionsAndroid, FlatList } from 'react-native';
 
 import { fonts, colors } from '../../components/theme';
 
@@ -9,6 +9,12 @@ import Geolocation from 'react-native-geolocation-service';
 import MapView, { PROVIDER_GOOGLE, Marker, Callout } from 'react-native-maps';
 
 import LinearGradient from 'react-native-linear-gradient';
+
+import axios from 'axios';
+
+import { api_connection } from '../../components/api_connection';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Home_Screen3 = ({ navigation }) => {
 
@@ -23,6 +29,12 @@ const Home_Screen3 = ({ navigation }) => {
   const [currentLatitude, setCurrentLatitude] = useState(11.3410);
 
   const [locationStatus, setLocationStatus] = useState('');
+
+  let [loading, setLoading] = useState(false);
+
+  const [jobData, setJobData] = useState([]);
+
+  let [errorMsg, setErrorMsg] = useState('Data Loading ...');
 
   const view_filter = () => {
 
@@ -48,7 +60,71 @@ const Home_Screen3 = ({ navigation }) => {
 
   }
 
+  const get_jobDetails = async () => {
+
+    var access_token = await AsyncStorage.getItem('token');
+
+    axios.get(api_connection + 'job',
+
+      {
+
+        headers: {
+
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+
+          'x-auth-header': access_token
+
+        },
+
+      })
+
+      .then(response => {
+
+        if (isRendered) {
+
+          setLoading(false);
+
+          if (response.data.message === "Success") {
+
+            setJobData(response.data.data);
+
+          }
+
+          else {
+
+            setErrorMsg('No Data');
+
+          }
+
+        }
+
+        return null;
+
+      })
+
+      .catch(err => console.log(err));
+
+  }
+
+  let isRendered = React.useRef(false);
+
   useEffect(() => {
+
+    setLoading(true);
+
+    isRendered = true;
+
+    get_jobDetails();
+
+    return () => {
+
+      isRendered = false;
+
+    };
+
+  }, []);
+
+  /* useEffect(() => {
 
     const granted = PermissionsAndroid.request(
 
@@ -74,13 +150,11 @@ const Home_Screen3 = ({ navigation }) => {
 
       setLocationStatus('Permission Denied');
 
-      // subscribeLocationLocation();
-
       getOneTimeLocation();
 
     }
 
-  });
+  }); */
 
   const getOneTimeLocation = () => {
 
@@ -116,563 +190,228 @@ const Home_Screen3 = ({ navigation }) => {
 
   const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RADIO;
 
+  const renderFooter = () => {
+
+    return (
+
+      <View style={styles.footer}>
+
+      </View>
+
+    );
+
+  };
+
+  const EmptyListMessage = () => {
+
+    return (
+
+      <View style={styles.empty_view}>
+
+        <Image source={require('../../assets/nodata.png')} style={styles.empty_image} resizeMode="contain" />
+
+        <Text style={[styles.emptyListStyle, { color: colors.text_color }]}> {errorMsg} </Text>
+
+      </View>
+
+    );
+
+  };
+
   return (
 
     <View style={styles.container}>
 
       <StatusBar animated={true} backgroundColor={colors.primary_color} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.header_view}>
 
-        <View style={styles.header_view}>
+        <View style={styles.input_container}>
 
-          <View style={styles.input_container}>
+          <TextInput
 
-            <TextInput
+            style={styles.input_style}
 
-              style={styles.input_style}
+            placeholder="Search"
 
-              placeholder="Search"
+            placeholderTextColor="#707171" />
 
-              placeholderTextColor="#707171" />
+          <View style={{ position: 'absolute', right: 10, alignItems: 'center', alignSelf: 'center' }}>
 
-            <View style={{ position: 'absolute', right: 10, alignItems: 'center', alignSelf: 'center' }}>
-
-              <Image source={require('../../assets/search.png')} style={{ width: 32, height: 32 }} resizeMode='contain' />
-
-            </View>
+            <Image source={require('../../assets/search.png')} style={{ width: 32, height: 32 }} resizeMode='contain' />
 
           </View>
-
-          <TouchableOpacity style={styles.right_view1} onPress={view_map}>
-
-            <Image source={require('../../assets/locations.png')} style={{ width: 110, height: 110 }} resizeMode='contain' />
-
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.right_view} onPress={view_filter}>
-
-            <Image source={require('../../assets/filter.png')} style={{ width: 100, height: 100 }} resizeMode='cover' />
-
-          </TouchableOpacity>
 
         </View>
 
-        <View style={styles.center_box}>
+        <TouchableOpacity style={styles.right_view1} onPress={view_map}>
 
-          <View style={{ marginTop: 10, flexDirection: 'row' }}>
+          <Image source={require('../../assets/locations.png')} style={{ width: 110, height: 110 }} resizeMode='contain' />
 
-            <Image source={require('../../assets/milky.png')} style={styles.icon_style} resizeMode='contain' />
+        </TouchableOpacity>
 
-            <View style={{ marginLeft: 10 }}>
+        <TouchableOpacity style={styles.right_view} onPress={view_filter}>
 
-              <Text style={styles.jobs_detaisl_text}>Shop Keeper</Text>
+          <Image source={require('../../assets/filter.png')} style={{ width: 100, height: 100 }} resizeMode='cover' />
 
-              <Text style={styles.jobs_detaisl_text}>Milky Mist, Erode</Text>
+        </TouchableOpacity>
 
-              <Text style={styles.jobs_detaisl_text1}>Posted on : 20th May 2022</Text>
+      </View>
+
+      <FlatList showsVerticalScrollIndicator={false}
+
+        data={jobData}
+
+        removeClippedSubviews={true}
+
+        maxToRenderPerBatch={8}
+
+        windowSize={10}
+
+        initialNumToRender={8}
+
+        keyExtractor={({ _id }) => `key-${_id}`}
+
+        renderItem={({ item, index }) => (
+
+          <View style={styles.center_box}>
+
+            <View style={{ marginTop: 10, flexDirection: 'row' }}>
+
+              <Image source={require('../../assets/milky.png')} style={styles.icon_style} resizeMode='contain' />
+
+              <View style={{ marginLeft: 10 }}>
+
+                <Text style={styles.jobs_detaisl_text}>{item.companyId.companyName}</Text>
+
+                <Text style={styles.jobs_detaisl_text}>{item.companyId.companyName}, {item.location}</Text>
+
+                <Text style={styles.jobs_detaisl_text1}>Posted on : {item.activeFromDate}</Text>
+
+              </View>
+
+            </View >
+
+            <View style={{ position: 'absolute', marginTop: 20, right: 10 }}>
+
+              <View style={{ flexDirection: 'row' }}>
+
+                <Image source={require('../../assets/currency.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
+
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>{item.salaryFrom} to {item.salaryTo}</Text>
+
+              </View>
+
+              <View style={{ flexDirection: 'row' }}>
+
+                <Image source={require('../../assets/location.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
+
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>{item.location}</Text>
+
+              </View>
 
             </View>
 
-          </View>
+            <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 10 }}>
 
-          <View style={{ position: 'absolute', marginTop: 20, right: 10 }}>
+              <Image source={require('../../assets/education.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
+
+              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Graduate  (Bachelor Degree)</Text>
+
+            </View>
 
             <View style={{ flexDirection: 'row' }}>
 
-              <Image source={require('../../assets/currency.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
+              <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
 
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>8,000 to 12,000</Text>
+                <Image source={require('../../assets/star.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
 
-            </View>
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>{item.experienceYear} years</Text>
 
-            <View style={{ flexDirection: 'row' }}>
+              </View>
 
-              <Image source={require('../../assets/location.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
+              <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
 
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>Perundurai</Text>
+                <Image source={require('../../assets/gender.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
 
-            </View>
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Both</Text>
 
-          </View>
+              </View>
 
-          <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 10 }}>
+              <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
 
-            <Image source={require('../../assets/education.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
+                <Image source={require('../../assets/experince.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
 
-            <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Graduate  (Bachelor Degree)</Text>
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Tamil</Text>
 
-          </View>
+              </View>
 
-          <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
 
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
+                <Image source={require('../../assets/card.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
 
-              <Image source={require('../../assets/star.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
+                <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Full Time</Text>
 
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>3-5 years</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/gender.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Both</Text>
+              </View>
 
             </View>
 
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
+            <View style={{ marginTop: 10 }}>
 
-              <Image source={require('../../assets/experince.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Tamil</Text>
+              <Text style={[styles.sub_header_text, { paddingLeft: 10 }]}>About Job</Text>
 
             </View>
 
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
+            <View style={{ marginTop: 10 }}>
 
-              <Image source={require('../../assets/card.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Full Time</Text>
+              <Text style={[styles.salary_detaisl_text, { paddingLeft: 10, color: colors.black_color, lineHeight: 22 }]}>{item.description[0].name}</Text>
 
             </View>
 
-          </View>
+            <View style={{ flexDirection: 'row', marginLeft: 10, marginTop: 10, marginBottom: 20 }}>
 
-          <View style={{ marginTop: 10 }}>
+              <TouchableOpacity>
 
-            <Text style={[styles.sub_header_text, { paddingLeft: 10 }]}>About Job</Text>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.salary_detaisl_text, { paddingLeft: 10, color: colors.black_color, lineHeight: 22 }]}>Pitching and selling the assigned products to customers who walk into the storesAddressing customer queries about the products Conduct price and feature comparisons to facilitate purchasing...     Read More</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginLeft: 10, marginTop: 10, marginBottom: 20 }}>
-
-            <TouchableOpacity>
-
-              <Image source={require('../../assets/job_detail11.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail21.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail31.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', right: 10, top: -30 }}>
-
-              <TouchableOpacity onPress={job_apply}>
-
-                <Image source={require('../../assets/apply_btn.png')} style={{ width: 126, height: 86 }} resizeMode='contain' />
+                <Image source={require('../../assets/job_detail11.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
 
               </TouchableOpacity>
 
-            </View>
+              <TouchableOpacity style={{ marginLeft: 10 }}>
 
-          </View>
-
-        </View>
-
-        <View style={[styles.center_box, { marginTop: 20 }]}>
-
-          <View style={{ marginTop: 10, flexDirection: 'row' }}>
-
-            <Image source={require('../../assets/lmw.png')} style={styles.icon_style} resizeMode='contain' />
-
-            <View style={{ marginLeft: 10 }}>
-
-              <Text style={styles.jobs_detaisl_text}>Sales Person</Text>
-
-              <Text style={styles.jobs_detaisl_text}>LMW, Coimbatore</Text>
-
-              <Text style={styles.jobs_detaisl_text1}>Posted on : 20th May 2022</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ position: 'absolute', marginTop: 20, right: 10 }}>
-
-            <View style={{ flexDirection: 'row' }}>
-
-              <Image source={require('../../assets/currency.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>8,000 to 12,000</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row' }}>
-
-              <Image source={require('../../assets/location.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>Chennai</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 10 }}>
-
-            <Image source={require('../../assets/education.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-            <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Graduate  (Bachelor Degree)</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row' }}>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/star.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>3-5 years</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/gender.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Both</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/experince.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Tamil</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/card.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Full Time</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.sub_header_text, { paddingLeft: 10 }]}>About Job</Text>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.salary_detaisl_text, { paddingLeft: 10, color: colors.black_color, lineHeight: 22 }]}>Pitching and selling the assigned products to customers who walk into the storesAddressing customer queries about the products Conduct price and feature comparisons to facilitate purchasing...     Read More</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginLeft: 10, marginTop: 10, marginBottom: 20 }}>
-
-            <TouchableOpacity>
-
-              <Image source={require('../../assets/job_detail11.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail21.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail31.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', right: 10, top: -30 }}>
-
-              <TouchableOpacity onPress={job_apply}>
-
-                <Image source={require('../../assets/apply_btn.png')} style={{ width: 126, height: 86 }} resizeMode='contain' />
+                <Image source={require('../../assets/job_detail21.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
 
               </TouchableOpacity>
 
-            </View>
+              <TouchableOpacity style={{ marginLeft: 10 }}>
 
-          </View>
-
-        </View>
-
-        <View style={styles.center_box}>
-
-          <View style={{ marginTop: 10, flexDirection: 'row' }}>
-
-            <Image source={require('../../assets/pricol.png')} style={styles.icon_style} resizeMode='contain' />
-
-            <View style={{ marginLeft: 10 }}>
-
-              <Text style={styles.jobs_detaisl_text}>Sales Person</Text>
-
-              <Text style={styles.jobs_detaisl_text}>Pricol, Coimbatore</Text>
-
-              <Text style={styles.jobs_detaisl_text1}>Posted on : 20th May 2022</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ position: 'absolute', marginTop: 20, right: 10 }}>
-
-            <View style={{ flexDirection: 'row' }}>
-
-              <Image source={require('../../assets/currency.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>9,000-12,000</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row' }}>
-
-              <Image source={require('../../assets/location.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>Coimbatore</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 10 }}>
-
-            <Image source={require('../../assets/education.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-            <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Graduate  (Bachelor Degree)</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row' }}>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/star.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>3-5 years</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/gender.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Both</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/experince.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Tamil</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/card.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Full Time</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.sub_header_text, { paddingLeft: 10 }]}>About Job</Text>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.salary_detaisl_text, { paddingLeft: 10, color: colors.black_color, lineHeight: 22 }]}>Pitching and selling the assigned products to customers who walk into the storesAddressing customer queries about the products Conduct price and feature comparisons to facilitate purchasing...     Read More</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginLeft: 10, marginTop: 10, marginBottom: 20 }}>
-
-            <TouchableOpacity>
-
-              <Image source={require('../../assets/job_detail11.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail21.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail31.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', right: 10, top: -30 }}>
-
-              <TouchableOpacity onPress={job_apply}>
-
-                <Image source={require('../../assets/apply_btn.png')} style={{ width: 126, height: 86 }} resizeMode='contain' />
+                <Image source={require('../../assets/job_detail31.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
 
               </TouchableOpacity>
 
-            </View>
+              <View style={{ position: 'absolute', right: 10, top: -30 }}>
 
-          </View>
+                <TouchableOpacity onPress={job_apply}>
 
-        </View>
+                  <Image source={require('../../assets/apply_btn.png')} style={{ width: 126, height: 86 }} resizeMode='contain' />
 
-        <View style={[styles.center_box, { marginTop: 20 }]}>
+                </TouchableOpacity>
 
-          <View style={{ marginTop: 10, flexDirection: 'row' }}>
-
-            <Image source={require('../../assets/sakthi.png')} style={styles.icon_style} resizeMode='contain' />
-
-            <View style={{ marginLeft: 10 }}>
-
-              <Text style={styles.jobs_detaisl_text}>Marketing Person</Text>
-
-              <Text style={styles.jobs_detaisl_text}>Sakthi Masala, Erode</Text>
-
-              <Text style={styles.jobs_detaisl_text1}>Posted on : 20th May 2022</Text>
+              </View>
 
             </View>
 
-          </View>
+          </View >
 
-          <View style={{ position: 'absolute', marginTop: 20, right: 10 }}>
+        )}
 
-            <View style={{ flexDirection: 'row' }}>
+        ListFooterComponent={renderFooter}
 
-              <Image source={require('../../assets/currency.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
+        ListEmptyComponent={EmptyListMessage}
 
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>9000-12,000</Text>
+      />
 
-            </View>
 
-            <View style={{ flexDirection: 'row' }}>
-
-              <Image source={require('../../assets/location.png')} style={{ width: 16, height: 16 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 0 }]}>Erode</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 10 }}>
-
-            <Image source={require('../../assets/education.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-            <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Graduate  (Bachelor Degree)</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row' }}>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/star.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>3-5 years</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/gender.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Both</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/experince.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Tamil</Text>
-
-            </View>
-
-            <View style={{ flexDirection: 'row', marginTop: 5, marginLeft: 10 }}>
-
-              <Image source={require('../../assets/card.png')} style={{ width: 20, height: 20 }} resizeMode='contain' />
-
-              <Text style={[styles.salary_detaisl_text, { color: colors.light_red, paddingLeft: 5 }]}>Full Time</Text>
-
-            </View>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.sub_header_text, { paddingLeft: 10 }]}>About Job</Text>
-
-          </View>
-
-          <View style={{ marginTop: 10 }}>
-
-            <Text style={[styles.salary_detaisl_text, { paddingLeft: 10, color: colors.black_color, lineHeight: 22 }]}>Pitching and selling the assigned products to customers who walk into the storesAddressing customer queries about the products Conduct price and feature comparisons to facilitate purchasing...     Read More</Text>
-
-          </View>
-
-          <View style={{ flexDirection: 'row', marginLeft: 10, marginTop: 10, marginBottom: 20 }}>
-
-            <TouchableOpacity>
-
-              <Image source={require('../../assets/job_detail11.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail21.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ marginLeft: 10 }}>
-
-              <Image source={require('../../assets/job_detail31.png')} style={{ width: 24, height: 24 }} resizeMode='contain' />
-
-            </TouchableOpacity>
-
-            <View style={{ position: 'absolute', right: 10, top: -30 }}>
-
-              <TouchableOpacity onPress={job_apply}>
-
-                <Image source={require('../../assets/apply_btn.png')} style={{ width: 126, height: 86 }} resizeMode='contain' />
-
-              </TouchableOpacity>
-
-            </View>
-
-          </View>
-
-        </View>
-
-      </ScrollView>
-
-      <Modal animationType="slide" transparent={true} visible={modalVisible}>
+      {/* <Modal animationType="slide" transparent={true} visible={modalVisible}>
 
         <View style={[styles.modal_center, { backgroundColor: colors.white_color }]}>
 
@@ -836,9 +575,9 @@ const Home_Screen3 = ({ navigation }) => {
 
         </View>
 
-      </Modal>
+      </Modal> */}
 
-      <Modal animationType="slide" transparent={true} visible={modalVisibles}>
+      {/* <Modal animationType="slide" transparent={true} visible={modalVisibles}>
 
         <View style={styles.modal_view}>
 
@@ -846,9 +585,9 @@ const Home_Screen3 = ({ navigation }) => {
 
         </View>
 
-      </Modal>
+      </Modal> */}
 
-      <Modal animationType="slide" transparent={true} visible={modalVisibleses}>
+      {/* <Modal animationType="slide" transparent={true} visible={modalVisibleses}>
 
         <View style={styles.modal_view}>
 
@@ -964,7 +703,7 @@ const Home_Screen3 = ({ navigation }) => {
 
         </View>
 
-      </Modal>
+      </Modal> */}
 
     </View>
 
@@ -1347,6 +1086,38 @@ const styles = StyleSheet.create({
     color: colors.white_color,
 
     textAlign: 'center'
+
+  },
+
+  empty_view: {
+
+    justifyContent: 'center',
+
+    alignSelf: 'center',
+
+    height: screenHeight / 1.5
+
+  },
+
+  emptyListStyle: {
+
+    padding: 10,
+
+    fontSize: 14,
+
+    textAlign: 'center',
+
+    fontFamily: fonts.semibold_font,
+
+  },
+
+  empty_image: {
+
+    width: screenWidth / 5,
+
+    height: screenHeight / 14,
+
+    alignSelf: 'center'
 
   },
 

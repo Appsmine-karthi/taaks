@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { StyleSheet, Text, View, StatusBar, Dimensions, Image, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, Dimensions, Image, TouchableOpacity, Modal, ScrollView, Alert, Button } from 'react-native';
 
 import { fonts, colors } from '../../components/theme';
 
@@ -12,7 +12,21 @@ import { RadioButton } from 'react-native-paper';
 
 import { Dropdown } from 'react-native-element-dropdown';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import axios from 'axios';
+
+import { api_connection } from '../../components/api_connection';
+
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+
+import moment from "moment";
+
+import DocumentPicker, { DirectoryPickerResponse, DocumentPickerResponse, isInProgress, types, } from 'react-native-document-picker';
+
 const Home_Screen5 = ({ navigation }) => {
+
+  let [loading, setLoading] = useState(false);
 
   let [name, setName] = useState('');
 
@@ -26,6 +40,8 @@ const Home_Screen5 = ({ navigation }) => {
 
   let [qulification, setQulification] = useState('');
 
+  let [experince, setExperince] = useState('');
+
   const [userImage, setUserImage] = useState(null);
 
   const [modalVisibles, setModalVisibles] = useState(false);
@@ -35,6 +51,14 @@ const Home_Screen5 = ({ navigation }) => {
   const [value, setValue] = React.useState('1');
 
   let [indexData, setIndexData] = useState('1');
+
+  const [dobdate, setDobDates] = useState();
+
+  const [dobDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  let dobcurrentDate = moment(dobdate).format("DD-MM-YYYY");
+
+  const [result, setResult] = React.useState('')
 
   const takePhotoFromCamera = () => {
 
@@ -103,6 +127,118 @@ const Home_Screen5 = ({ navigation }) => {
     { label: 'MCA', value: '2' }
 
   ];
+
+  const showDatePicker = () => {
+
+    setDatePickerVisibility(true);
+
+  };
+
+  const hideDatePicker = () => {
+
+    setDatePickerVisibility(false);
+
+  };
+
+  const handleConfirm = (offerdate) => {
+
+    hideDatePicker();
+
+    setDobDates(offerdate);
+
+  };
+
+  const submit_data = async () => {
+
+    if (!name) { Alert.alert("Taak", "Please Enter the Name"); return; }
+
+    if (!phoneNumber) { Alert.alert("Taak", "Please Enter the Mobile Number"); return; }
+
+    if (!email) { Alert.alert("Taak", "Please Enter the Email ID"); return; }
+
+    if (!dobcurrentDate) { Alert.alert("Taak", "Please Enter the Date of Birth"); return; }
+
+    if (!value) { Alert.alert("Taak", "Please Select the Gender"); return; }
+
+    if (!indexData) { Alert.alert("Taak", "Please Select the Qulification"); return; }
+
+    if (!experince) { Alert.alert("Taak", "Please Enter the Experince"); return; }
+
+    setLoading(true);
+
+    var getUserID = await AsyncStorage.getItem('_id');
+
+    var access_token = await AsyncStorage.getItem('token');
+
+    var formData = new FormData();
+
+    formData.append('_id', getUserID);
+
+    formData.append('memberType', "1");
+
+    formData.append('name', name);
+
+    formData.append('mobileNo', phoneNumber);
+
+    formData.append('email', email);
+
+    formData.append('doB', dobcurrentDate);
+
+    formData.append('genderId', value);
+
+    formData.append('qualificationId', indexData);
+
+    formData.append('degree', qulification);
+
+    formData.append('experience', experince);
+
+    formData.append('audioPath', result);
+
+    if (userImage === null) { } else { formData.append('profile', { uri: userImage, type: 'image/jpeg', name: userImage, }); }
+
+    if (result === null) { } else { formData.append('audioPath', { uri: result, type: 'audio/mpeg', name: result, }); }
+
+    axios({
+
+      url: api_connection + 'member',
+
+      method: 'PUT',
+
+      data: formData,
+
+      headers: {
+
+        Accept: 'application/json',
+
+        'Content-Type': 'multipart/form-data',
+
+        'x-auth-header': access_token
+
+      },
+
+    })
+      .then(function (response) {
+
+        setLoading(false);
+
+        Alert.alert("Taak", response.data.alert);
+
+
+      })
+
+      .catch(function (response) {
+
+        setLoading(false);
+
+        setShowStatus(false);
+
+        Alert.alert("Taak", response.data.alert);
+
+      });
+
+    setLoading(false);
+
+  }
 
   return (
 
@@ -208,13 +344,27 @@ const Home_Screen5 = ({ navigation }) => {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
 
-              <FormInput
+              <TouchableOpacity activeOpacity={0.5} onPress={showDatePicker} >
 
-                labelValue={dob}
+                <View style={styles.input_style}>
 
-                placeholderText="Date of birth"
+                  <Text style={styles.input_styles}> {dobcurrentDate}</Text>
 
-                onChangeText={txt => setDob(txt)} value={dob} />
+                  <DateTimePickerModal
+
+                    isVisible={dobDatePickerVisible}
+
+                    maximumDate={new Date()}
+
+                    format="DD-MM-YYYY" mode="date"
+
+                    onConfirm={handleConfirm}
+
+                    onCancel={hideDatePicker} />
+
+                </View>
+
+              </TouchableOpacity>
 
               <View style={{ position: 'absolute', right: 20, paddingTop: 10 }}>
 
@@ -342,11 +492,11 @@ const Home_Screen5 = ({ navigation }) => {
 
             <FormInput
 
-              labelValue={qulification}
+              labelValue={experince}
 
               placeholderText="Experience"
 
-              onChangeText={txt => setQulification(txt)} value={qulification} />
+              onChangeText={txt => setExperince(txt)} value={experince} />
 
           </View>
 
@@ -366,7 +516,27 @@ const Home_Screen5 = ({ navigation }) => {
 
           </TouchableOpacity>
 
-          <TouchableOpacity /* onPress={model_view} */>
+          <TouchableOpacity onPress={async () => {
+
+            try {
+
+              const pickerResult = await DocumentPicker.pickSingle({
+
+                presentationStyle: 'fullScreen',
+
+                copyTo: 'cachesDirectory',
+
+              })
+
+              setResult([pickerResult])
+
+            } catch (e) {
+
+              handleError(e)
+
+            }
+
+          }}>
 
             <View style={[styles.audio_box, { marginLeft: 15 }]}>
 
@@ -380,7 +550,7 @@ const Home_Screen5 = ({ navigation }) => {
 
         </View>
 
-        <TouchableOpacity style={styles.btn_view} onPress={() => navigation.navigate('SkillsSelect_Screen')}>
+        <TouchableOpacity style={styles.btn_view} /* onPress={() => navigation.navigate('SkillsSelect_Screen')} */ onPress={submit_data}>
 
           <Text style={styles.btn_text}>Next</Text>
 
@@ -717,7 +887,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
 
     paddingTop: 20
-    
+
+  },
+
+  input_style: {
+
+    marginTop: 20,
+
+    marginBottom: 10,
+
+    width: screenWidth - 60,
+
+    height: screenHeight / 16,
+
+    backgroundColor: colors.white_color,
+
+    alignSelf: 'center',
+
+    borderWidth: 1,
+
+    borderRadius: 100,
+
+    borderColor: colors.shadow_color
+
+  },
+
+  input_styles: {
+
+    flex: 1,
+
+    padding: 10,
+
+    paddingLeft: 20,
+
+    fontSize: 14,
+
+    fontFamily: fonts.regular_font,
+
+    color: colors.black_color,
+
+    justifyContent: 'center',
+
+    alignItems: 'center'
+
   }
 
 

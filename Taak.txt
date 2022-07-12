@@ -19,21 +19,8 @@ npm install react-native-element-dropdown --save
 npm i qs
 npm install react-native-geolocation-service
 npm install react-native-maps
+npm i react-native-modal-datetime-picker @react-native-community/datetimepicker
+npm install --save moment react-moment
+npm i --save react-native-document-picker
 --------------------------------
 
-
-
-npm i react-native-snap-carousel
-npm i react-native-dropdown-picker
-npm i react-native-star-rating
-npm i lottie-react-native
-npm install @react-native-community/slider --save
-npm i react-native-numeric-input
-npm i react-native-maps
-npm install react-native-maps --save-exact
-npm install react-native-geocoding
-npm install react-native-geolocation-service
-npm i react-native-maps-directions
-npm i react-native-qrcode-scanner@1.5.3
-npm install react-native-camera
-npm install react-native-permissions

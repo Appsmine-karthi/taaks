@@ -79,6 +79,8 @@ const SignIn_Screen = ({ navigation }) => {
            AsyncStorage.setItem('otp_screen', 'signin');
 
            AsyncStorage.setItem('token', response.data.data.token);
+           
+           AsyncStorage.setItem('_id', response.data.data.member._id);
 
            navigation.navigate('Otp_Screen');
 
